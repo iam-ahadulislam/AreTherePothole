@@ -111,8 +111,9 @@ Or use Live Server in VS Code.
 
 ## 📸 Output Screenshots
 
-
+* YOLOv8-seg Result
 ![Alt text](out0.png?raw=true "Optional Title")
+* YOLOv26 Result
 ![Alt text](out2.png?raw=true "Optional Title")
 
 
