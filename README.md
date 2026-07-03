@@ -112,10 +112,9 @@ Or use Live Server in VS Code.
 ## 📸 Output Screenshots
 
 
-```bash
-out0.png
-out2.png
-```
+![Alt text](out0.png?raw=true "Optional Title")
+![Alt text](out2.png?raw=true "Optional Title")
+
 
 ---
 ## 🔴Live Output
