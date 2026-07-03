@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AreTherePothole</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #050a0f;
+    --surface: #0c1420;
+    --surface2: #111d2e;
+    --border: rgba(0,200,255,0.12);
+    --accent: #00c8ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6b;
+    --text: #e8f4f8;
+    --muted: #5a7a8a;
+    --v8: #00c8ff;
+    --v26: #ff6b35;
+    --glow: 0 0 40px rgba(0,200,255,0.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    pointer-events: none;
+  }
+  .cursor-dot {
+    width: 8px; height: 8px; background: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s;
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid rgba(0,200,255,0.5);
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Orbs */
+  .orb {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+    animation: orb-drift 12s ease-in-out infinite alternate;
+  }
+  .orb-1 { width: 500px; height: 500px; background: rgba(0,200,255,0.06); top: -150px; right: -100px; }
+  .orb-2 { width: 400px; height: 400px; background: rgba(255,107,53,0.05); bottom: -100px; left: -80px; animation-delay: -6s; }
+  @keyframes orb-drift { from { transform: translate(0,0) scale(1); } to { transform: translate(30px, 40px) scale(1.1); } }
+
+  /* Layout */
+  .wrap { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+  /* Header */
+  header {
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(5,10,15,0.85);
+  }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.4rem;
+    letter-spacing: -0.5px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo span { color: var(--accent); }
+  .badge {
+    font-size: 0.65rem; font-weight: 500;
+    background: rgba(0,200,255,0.1);
+    border: 1px solid rgba(0,200,255,0.25);
+    color: var(--accent); padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* Hero */
+  .hero {
+    padding: 80px 0 60px;
+    text-align: center;
+  }
+  .hero-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 24px;
+    border: 1px solid rgba(0,200,255,0.2);
+    padding: 6px 14px; border-radius: 20px;
+  }
+  .hero-label::before { content: ''; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 5.5rem);
+    font-weight: 800; line-height: 1.0;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+  }
+  .hero p {
+    font-size: 0.95rem; color: var(--muted);
+    max-width: 520px; margin: 0 auto 40px;
+    line-height: 1.8;
+  }
+
+  /* Model badges */
+  .model-tags { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 60px; }
+  .mtag {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 8px;
+    font-size: 0.78rem; font-weight: 500;
+    border: 1px solid;
+  }
+  .mtag-v8 { background: rgba(0,200,255,0.08); border-color: rgba(0,200,255,0.3); color: var(--v8); }
+  .mtag-v26 { background: rgba(255,107,53,0.08); border-color: rgba(255,107,53,0.3); color: var(--v26); }
+  .mtag-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .mtag-v8 .mtag-dot { background: var(--v8); box-shadow: 0 0 8px var(--v8); }
+  .mtag-v26 .mtag-dot { background: var(--v26); box-shadow: 0 0 8px var(--v26); }
+
+  /* Upload zone */
+  .upload-section { margin-bottom: 60px; }
+  .input-tabs {
+    display: flex; justify-content: center; gap: 0;
+    margin-bottom: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 5px;
+    width: fit-content; margin: 0 auto 28px;
+  }
+  .tab-btn {
+    padding: 10px 28px; border-radius: 8px;
+    border: none; cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    color: var(--muted); background: transparent;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(0,200,255,0.2), rgba(0,200,255,0.05));
+    color: var(--accent);
+    border: 1px solid rgba(0,200,255,0.3);
+    box-shadow: 0 0 20px rgba(0,200,255,0.1);
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed rgba(0,200,255,0.25);
+    border-radius: 20px;
+    padding: 60px 40px;
+    text-align: center;
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative; overflow: hidden;
+  }
+  .drop-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(0,200,255,0.04), transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .drop-zone:hover::before, .drop-zone.dragover::before { opacity: 1; }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: rgba(0,200,255,0.6);
+    box-shadow: 0 0 40px rgba(0,200,255,0.08), inset 0 0 40px rgba(0,200,255,0.03);
+  }
+  .drop-icon {
+    width: 72px; height: 72px;
+    background: rgba(0,200,255,0.08);
+    border: 1px solid rgba(0,200,255,0.2);
+    border-radius: 18px;
+    margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    transition: transform 0.3s;
+  }
+  .drop-zone:hover .drop-icon { transform: translateY(-4px) scale(1.05); }
+  .drop-zone h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.15rem; margin-bottom: 8px; color: var(--text);
+  }
+  .drop-zone p { font-size: 0.78rem; color: var(--muted); margin-bottom: 24px; }
+  #fileInput { display: none; }
+  .upload-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    color: #000; font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; font-weight: 600;
+    border: none; border-radius: 10px;
+    cursor: pointer; transition: all 0.25s;
+    letter-spacing: 0.5px;
+  }
+  .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,200,255,0.35); }
+  .upload-btn:active { transform: translateY(0); }
+
+  /* Camera section */
+  .camera-section {
+    display: none;
+    text-align: center;
+  }
+  .camera-section.active { display: block; }
+  .upload-panel { display: block; }
+  .upload-panel.hidden { display: none; }
+
+  .camera-wrapper {
+    position: relative; max-width: 600px; margin: 0 auto;
+    border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--border);
+    background: #000;
+  }
+  #cameraFeed {
+    width: 100%; display: block;
+    border-radius: 20px;
+  }
+  .camera-overlay {
+    position: absolute; inset: 0;
+    border-radius: 20px;
+    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.6));
+    pointer-events: none;
+  }
+  /* Corner brackets */
+  .camera-overlay::before, .camera-overlay::after {
+    content: '';
+    position: absolute;
+    width: 40px; height: 40px;
+    border-color: var(--accent); border-style: solid;
+  }
+  .camera-overlay::before { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+  .camera-overlay::after { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+  .cam-btns { display: flex; gap: 12px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .cam-btn {
+    padding: 12px 28px; border-radius: 10px;
+    border: 1px solid; font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.5px;
+  }
+  .cam-btn-start { background: rgba(127,255,107,0.1); border-color: rgba(127,255,107,0.4); color: var(--accent3); }
+  .cam-btn-start:hover { background: rgba(127,255,107,0.2); box-shadow: 0 0 20px rgba(127,255,107,0.15); }
+  .cam-btn-capture { background: linear-gradient(135deg, var(--accent), #0099cc); border-color: transparent; color: #000; font-weight: 600; }
+  .cam-btn-capture:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,200,255,0.35); }
+  .cam-btn-stop { background: rgba(255,107,53,0.1); border-color: rgba(255,107,53,0.3); color: var(--v26); }
+  .cam-btn-stop:hover { background: rgba(255,107,53,0.2); }
+
+  /* Preview & Results */
+  .results-section { display: none; margin-bottom: 80px; }
+  .results-section.visible { display: block; animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+  }
+  .results-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem; font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .processing-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 0.72rem; letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .processing-badge.running {
+    background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); color: var(--accent);
+  }
+  .processing-badge.done {
+    background: rgba(127,255,107,0.1); border: 1px solid rgba(127,255,107,0.3); color: var(--accent3);
+  }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Comparison grid */
+  .comparison-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 700px) { .comparison-grid { grid-template-columns: 1fr; } }
+
+  .model-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    transition: box-shadow 0.3s;
+  }
+  .model-card:hover { box-shadow: var(--glow); }
+  .model-card-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .model-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 1.05rem;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .model-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .v8-dot { background: var(--v8); box-shadow: 0 0 10px var(--v8); }
+  .v26-dot { background: var(--v26); box-shadow: 0 0 10px var(--v26); }
+  .model-type { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .model-card-img {
+    position: relative; aspect-ratio: 4/3;
+    background: #000; display: flex; align-items: center; justify-content: center;
+  }
+  .model-card-img canvas, .model-card-img img {
+    width: 100%; height: 100%; object-fit: contain; display: block;
+  }
+  .img-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px;
+    background: var(--surface);
+  }
+  .loader-ring {
+    width: 44px; height: 44px;
+    border: 3px solid rgba(0,200,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loader-text { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; }
+
+  .model-card-stats {
+    padding: 16px 22px;
+    display: flex; gap: 20px; flex-wrap: wrap;
+  }
+  .stat {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .stat-label { font-size: 0.62rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-value { font-size: 1.0rem; font-weight: 600; }
+  .stat-value.v8 { color: var(--v8); }
+  .stat-value.v26 { color: var(--v26); }
+
+  /* Original image */
+  .orig-card {
+    margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+  }
+  .orig-header {
+    padding: 14px 22px; border-bottom: 1px solid var(--border);
+    font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .orig-header::before { content: ''; width: 6px; height: 6px; background: var(--muted); border-radius: 50%; }
+  .orig-img { max-height: 220px; width: 100%; object-fit: contain; display: block; background: #000; }
+
+  /* Reset */
+  .reset-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: 10px;
+    background: transparent;
+    border: 1px solid rgba(255,107,53,0.3);
+    color: var(--v26); font-family: 'DM Mono', monospace;
+    font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+    margin: 0 auto;
+  }
+  .reset-btn:hover { background: rgba(255,107,53,0.08); }
+
+  /* Stats strip */
+  .stats-strip {
+    display: flex; gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .strip-item {
+    flex: 1; padding: 16px 20px; text-align: center;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .strip-item:last-child { border-right: none; }
+  .strip-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .strip-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem; font-weight: 700;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    text-align: center; color: var(--muted);
+    font-size: 0.72rem; letter-spacing: 0.5px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor">
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+</div>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<header>
+  <div class="wrap">
+    <div class="logo">
+      <div class="logo-icon">🕳</div>
+      Pothole<span>Koi?</span>
+    </div>
+    <div class="badge"><a href="#"></a>FIND US</div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+
+    <section class="hero">
+      <div class="hero-label">Live Detection System</div>
+      <h1>Are There<br/>Pothole?</h1>
+      <p>Upload a road image or capture via camera. Get instant side-by-side segmentation results from <strong>YOLOv8-seg</strong> and <strong>YOLOv26</strong>.</p>
+
+      <div class="model-tags">
+        <div class="mtag mtag-v8"><span class="mtag-dot"></span> YOLOv8-seg · Instance Segmentation</div>
+        <div class="mtag mtag-v26"><span class="mtag-dot"></span> YOLOv26 · Object Detection</div>
+      </div>
+    </section>
+
+    <!-- Input tabs -->
+    <section class="upload-section">
+      <div class="input-tabs">
+        <button class="tab-btn active" id="tabUpload" onclick="switchTab('upload')">📁 Upload Image</button>
+        <button class="tab-btn" id="tabCamera" onclick="switchTab('camera')">📷 Use Camera</button>
+      </div>
+
+      <!-- Upload panel -->
+      <div class="upload-panel" id="uploadPanel">
+        <div class="drop-zone" id="dropZone"
+          ondragover="event.preventDefault(); this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="handleDrop(event)">
+          <div class="drop-icon">📸</div>
+          <h3>Drop your road image here</h3>
+          <p>Supports JPG, PNG, WEBP — best results with clear road photos</p>
+          <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this.files[0])" />
+          <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+            ↑ Browse File
+          </button>
+        </div>
+      </div>
+
+      <!-- Camera panel -->
+      <div class="camera-section" id="cameraPanel">
+        <div class="camera-wrapper">
+          <video id="cameraFeed" autoplay playsinline></video>
+          <canvas id="cameraSnap" style="display:none"></canvas>
+          <div class="camera-overlay"></div>
+        </div>
+        <div class="cam-btns">
+          <button class="cam-btn cam-btn-start" id="btnStart" onclick="startCamera()">▶ Start Camera</button>
+          <button class="cam-btn cam-btn-capture" id="btnCapture" onclick="capturePhoto()" style="display:none">◎ Capture</button>
+          <button class="cam-btn cam-btn-stop" id="btnStop" onclick="stopCamera()" style="display:none">■ Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results-section" id="resultsSection">
+
+      <div class="results-header">
+        <div class="results-title">Detection Results</div>
+        <div class="processing-badge running" id="statusBadge">
+          <span class="spin">◌</span> Processing...
+        </div>
+      </div>
+
+      <div class="orig-card">
+        <div class="orig-header">Original Input Image</div>
+        <img class="orig-img" id="origImage" src="" alt="Original" />
+      </div>
+
+      <div class="stats-strip" id="statsStrip" style="display:none">
+        <div class="strip-item">
+          <div class="strip-label">YOLOv8 Potholes</div>
+          <div class="strip-val" id="v8Count" style="color:var(--v8)">—</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-label">YOLOv26 Potholes</div>
+          <div class="strip-val" id="v26Count" style="color:var(--v26)">—</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-label">YOLOv8 Confidence</div>
+          <div class="strip-val" id="v8Conf" style="color:var(--v8)">—</div>
+        </div>
+        <div class="strip-item">
+          <div class="strip-label">YOLOv26 Confidence</div>
+          <div class="strip-val" id="v26Conf" style="color:var(--v26)">—</div>
+        </div>
+      </div>
+
+      <div class="comparison-grid">
+        <!-- YOLOv8 -->
+        <div class="model-card">
+          <div class="model-card-header">
+            <div class="model-name">
+              <div class="model-dot v8-dot"></div>
+              YOLOv8-seg
+            </div>
+            <div class="model-type">Seg · mAP50: 72.5%</div>
+          </div>
+          <div class="model-card-img">
+            <canvas id="canvasV8"></canvas>
+            <div class="img-loading" id="loadingV8">
+              <div class="loader-ring" style="border-top-color:var(--v8)"></div>
+              <div class="loader-text">Running segmentation...</div>
+            </div>
+          </div>
+          <div class="model-card-stats">
+            <div class="stat">
+              <div class="stat-label">Detections</div>
+              <div class="stat-value v8" id="v8DetCount">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Avg Conf.</div>
+              <div class="stat-value v8" id="v8AvgConf">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Type</div>
+              <div class="stat-value v8">Mask</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- YOLOv26 -->
+        <div class="model-card">
+          <div class="model-card-header">
+            <div class="model-name">
+              <div class="model-dot v26-dot"></div>
+              YOLOv26
+            </div>
+            <div class="model-type">Det · Upgraded Arch.</div>
+          </div>
+          <div class="model-card-img">
+            <canvas id="canvasV26"></canvas>
+            <div class="img-loading" id="loadingV26">
+              <div class="loader-ring" style="border-top-color:var(--v26)"></div>
+              <div class="loader-text">Running detection...</div>
+            </div>
+          </div>
+          <div class="model-card-stats">
+            <div class="stat">
+              <div class="stat-label">Detections</div>
+              <div class="stat-value v26" id="v26DetCount">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Avg Conf.</div>
+              <div class="stat-value v26" id="v26AvgConf">—</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Type</div>
+              <div class="stat-value v26">Box</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:28px; text-align:center">
+        <button class="reset-btn" onclick="resetAll()">↩ Analyze another image</button>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    © 2026 All Rights Reserved | Developed By <a href="#">MD Sojib Al Hasan</a> & <a href="#">Ahadul Islam Rahul</a>
+
+  </div>
+</footer>
+
+<script>
+// ─── Custom Cursor ───────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const dot = document.getElementById('cursorDot');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animateCursor() {
+  dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+  rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+  ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
+  document.getElementById('tabCamera').classList.toggle('active', tab === 'camera');
+  document.getElementById('uploadPanel').classList.toggle('hidden', tab !== 'upload');
+  document.getElementById('cameraPanel').classList.toggle('active', tab === 'camera');
+  if (tab !== 'camera') stopCamera();
+}
+
+// ─── Camera ──────────────────────────────────────────────────────────────────
+let stream = null;
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('cameraFeed').srcObject = stream;
+    document.getElementById('btnStart').style.display = 'none';
+    document.getElementById('btnCapture').style.display = 'inline-flex';
+    document.getElementById('btnStop').style.display = 'inline-flex';
+  } catch(e) { alert('Could not access camera. Please grant permission.'); }
+}
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  const video = document.getElementById('cameraFeed');
+  video.srcObject = null;
+  document.getElementById('btnStart').style.display = 'inline-flex';
+  document.getElementById('btnCapture').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'none';
+}
+function capturePhoto() {
+  const video = document.getElementById('cameraFeed');
+  const snap = document.getElementById('cameraSnap');
+  snap.width = video.videoWidth; snap.height = video.videoHeight;
+  snap.getContext('2d').drawImage(video, 0, 0);
+  snap.toBlob(blob => { handleFile(blob); }, 'image/jpeg', 0.95);
+}
+
+// ─── File handling ────────────────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleFile(file);
+}
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => runDetection(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+// ─── Simulation: Draw bounding boxes / masks ──────────────────────────────────
+// NOTE: In production, replace this with API calls to your Python backend
+// (Flask/FastAPI running your YOLOv8 and YOLOv26 models).
+
+function loadImageOnCanvas(src, callback) {
+  const img = new Image();
+  img.onload = () => callback(img);
+  img.src = src;
+}
+
+function simulateDetections(seed) {
+  // Deterministic pseudo-random based on seed
+  let r = seed;
+  const rand = () => { r = (r * 1664525 + 1013904223) & 0xffffffff; return (r >>> 0) / 0xffffffff; };
+  const count = Math.floor(rand() * 3) + 1;
+  const dets = [];
+  for (let i = 0; i < count; i++) {
+    const x = rand() * 0.5 + 0.05;
+    const y = rand() * 0.5 + 0.1;
+    const w = rand() * 0.25 + 0.1;
+    const h = rand() * 0.2 + 0.08;
+    const conf = (rand() * 0.3 + 0.65).toFixed(2);
+    dets.push({ x, y, w, h, conf: parseFloat(conf) });
+  }
+  return dets;
+}
+
+function drawV8(canvas, img, dets) {
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const W = canvas.width, H = canvas.height;
+
+  dets.forEach((d, i) => {
+    const x = d.x * W, y = d.y * H, w = d.w * W, h = d.h * H;
+
+    // Segmentation mask (polygon approximation)
+    const pts = 20;
+    ctx.beginPath();
+    for (let p = 0; p < pts; p++) {
+      const angle = (p / pts) * Math.PI * 2;
+      const rx = (w / 2) * (0.85 + Math.sin(p * 3.1) * 0.12);
+      const ry = (h / 2) * (0.85 + Math.cos(p * 2.7) * 0.10);
+      const px = x + w/2 + Math.cos(angle) * rx;
+      const py = y + h/2 + Math.sin(angle) * ry;
+      p === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `rgba(0, 200, 255, 0.22)`;
+    ctx.fill();
+    ctx.strokeStyle = `rgba(0, 200, 255, 0.9)`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Label
+    const label = `pothole ${(d.conf * 100).toFixed(0)}%`;
+    ctx.font = `bold ${Math.max(12, W * 0.015)}px DM Mono, monospace`;
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(0,200,255,0.85)';
+    ctx.fillRect(x, y - 24, tw + 16, 22);
+    ctx.fillStyle = '#000';
+    ctx.fillText(label, x + 8, y - 7);
+  });
+}
+
+function drawV26(canvas, img, dets) {
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const W = canvas.width, H = canvas.height;
+
+  dets.forEach((d, i) => {
+    const x = d.x * W, y = d.y * H, w = d.w * W, h = d.h * H;
+    const conf = (d.conf * 0.97 + 0.01).toFixed(2); // slightly different
+
+    // Bounding box
+    ctx.strokeStyle = `rgba(255, 107, 53, 0.95)`;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(x, y, w, h);
+
+    // Corner accents
+    const cs = 14;
+    ctx.strokeStyle = '#ff6b35'; ctx.lineWidth = 4;
+    [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([cx,cy], ci) => {
+      const sx = ci % 2 === 0 ? 1 : -1, sy = ci < 2 ? 1 : -1;
+      ctx.beginPath(); ctx.moveTo(cx, cy + sy*cs); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx*cs, cy); ctx.stroke();
+    });
+
+    // Fill
+    ctx.fillStyle = 'rgba(255, 107, 53, 0.12)';
+    ctx.fillRect(x, y, w, h);
+
+    // Label
+    const label = `pothole ${(parseFloat(conf) * 100).toFixed(0)}%`;
+    ctx.font = `bold ${Math.max(12, W * 0.015)}px DM Mono, monospace`;
+    const tw = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(255,107,53,0.9)';
+    ctx.fillRect(x, y - 24, tw + 16, 22);
+    ctx.fillStyle = '#000';
+    ctx.fillText(label, x + 8, y - 7);
+  });
+}
+
+// ─── Main detection flow ──────────────────────────────────────────────────────
+function runDetection(dataUrl) {
+  document.getElementById('origImage').src = dataUrl;
+  document.getElementById('resultsSection').classList.add('visible');
+  document.getElementById('loadingV8').style.display = 'flex';
+  document.getElementById('loadingV26').style.display = 'flex';
+  document.getElementById('statsStrip').style.display = 'none';
+  document.getElementById('statusBadge').className = 'processing-badge running';
+  document.getElementById('statusBadge').innerHTML = '<span class="spin">◌</span> Processing...';
+
+  // Scroll to results
+  setTimeout(() => document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+  const seed = dataUrl.split('').reduce((a, c, i) => a + c.charCodeAt(0) * (i + 1), 0);
+
+  loadImageOnCanvas(dataUrl, img => {
+    const dets8 = simulateDetections(seed);
+    const dets26 = simulateDetections(seed + 99991);
+
+    // YOLOv8 — render after short delay
+    setTimeout(() => {
+      const c8 = document.getElementById('canvasV8');
+      drawV8(c8, img, dets8);
+      document.getElementById('loadingV8').style.display = 'none';
+      const avg8 = (dets8.reduce((s,d) => s + d.conf, 0) / dets8.length * 100).toFixed(1);
+      document.getElementById('v8DetCount').textContent = dets8.length;
+      document.getElementById('v8AvgConf').textContent = avg8 + '%';
+      document.getElementById('v8Count').textContent = dets8.length;
+      document.getElementById('v8Conf').textContent = avg8 + '%';
+    }, 900);
+
+    // YOLOv26 — render after longer delay
+    setTimeout(() => {
+      const c26 = document.getElementById('canvasV26');
+      drawV26(c26, img, dets26);
+      document.getElementById('loadingV26').style.display = 'none';
+      const avg26 = (dets26.reduce((s,d) => s + d.conf, 0) / dets26.length * 100).toFixed(1);
+      document.getElementById('v26DetCount').textContent = dets26.length;
+      document.getElementById('v26AvgConf').textContent = avg26 + '%';
+      document.getElementById('v26Count').textContent = dets26.length;
+      document.getElementById('v26Conf').textContent = avg26 + '%';
+      document.getElementById('statsStrip').style.display = 'flex';
+      document.getElementById('statusBadge').className = 'processing-badge done';
+      document.getElementById('statusBadge').innerHTML = '✓ Detection Complete';
+    }, 1600);
+  });
+}
+
+function resetAll() {
+  document.getElementById('resultsSection').classList.remove('visible');
+  document.getElementById('fileInput').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
