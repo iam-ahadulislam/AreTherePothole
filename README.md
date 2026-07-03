@@ -13,15 +13,15 @@ Built with a futuristic UI and real-time simulation pipeline for easy demonstrat
 
 ## 🚀 Features
 
-✅ Upload road images for pothole analysis
-✅ Capture live road images using device camera
-✅ Side-by-side model comparison
-✅ YOLOv8 segmentation mask visualization
-✅ YOLOv26 bounding box detection visualization
-✅ Detection confidence scoring
-✅ Responsive futuristic UI
-✅ Drag-and-drop image upload
-✅ Real-time processing animations
+* ✅ Upload road images for pothole analysis
+* ✅ Capture live road images using device camera
+* ✅ Side-by-side model comparison
+* ✅ YOLOv8 segmentation mask visualization
+* ✅ YOLOv26 bounding box detection visualization
+* ✅ Detection confidence scoring
+* ✅ Responsive futuristic UI
+* ✅ Drag-and-drop image upload
+* ✅ Real-time processing animations
 
 ---
 
